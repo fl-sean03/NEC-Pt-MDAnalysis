@@ -61,15 +61,15 @@ This document outlines the detailed tasks for regenerating the MDAnalysis data a
 
 ### Phase 5: Pipeline Stage 4 - Convergence Analysis (`analyze_convergence.py`)
 
-- [ ] Regenerate `analyze_convergence.py`:
-    - [ ] Define clear inputs (fragment metrics CSV path).
-    - [ ] Implement data loading (fragment metrics CSV).
-    - [ ] Implement robust unique-facet coverage calculation and plotting.
-    - [ ] Implement robust average Rg over time plotting.
-    - [ ] Implement robust MSD calculation and plotting.
-    - [ ] Implement robust event-count growth calculation and plotting.
-    - [ ] Define clear outputs (plot file paths).
-    - [ ] Add command-line arguments for all inputs and outputs.
+- [x] Regenerate `analyze_convergence.py`:
+- [x] Define clear inputs (fragment metrics CSV path).
+- [x] Implement data loading (fragment metrics CSV).
+- [x] Implement robust unique-facet coverage calculation and plotting.
+- [x] Implement robust average Rg over time plotting.
+- [x] Implement robust MSD calculation and plotting.
+- [x] Implement robust event-count growth calculation and plotting.
+- [x] Define clear outputs (plot file paths).
+- [x] Add command-line arguments for all inputs and outputs.
 
 ### Phase 6: Pipeline Stage 5 - Advanced Visualization (`plot_residence_time_traces.py`)
 
