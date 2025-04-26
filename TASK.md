@@ -10,8 +10,8 @@ This document outlines the detailed tasks for regenerating the MDAnalysis data a
 
 - [x] Create PLANNING.md
 - [x] Create TASK.md (this document)
-- [ ] Set up project directory structure (e.g., ensure `src/` and `outputs/` exist).
-- [ ] Review provided sample scripts in `src_sample_scripts/` for reference and ideas (remembering to generate new code originally).
+- [x] Set up project directory structure (e.g., ensure `src/` and `outputs/` exist).
+- [x] Review provided sample scripts in `src_sample_scripts/` for reference and ideas (remembering to generate new code originally).
 
 ### Phase 2: Pipeline Stage 1 - Data Preparation (`nec_pt_fragment_metrics.py`)
 
@@ -47,17 +47,17 @@ This document outlines the detailed tasks for regenerating the MDAnalysis data a
 ### Phase 4: Pipeline Stage 3 - Binding Metrics Analysis (`analyze_binding_ratios.py`)
 
 - [ ] Regenerate `analyze_binding_ratios.py`:
-    - [ ] Define clear inputs (fragment metrics CSV path, parameters like cutoff, temperature, min event duration, min event threshold).
-    - [ ] Implement data loading (fragment metrics CSV).
-    - [ ] Implement sampling interval calculation.
-    - [ ] Implement robust overall and per-facet K_D calculation (Time Off / Time On).
-    - [ ] Implement robust ΔG_D calculation (using T=453 K).
-    - [ ] Implement robust event counting per facet.
-    - [ ] Implement filtering of facets with N_events < 10.
-    - [ ] Implement robust mean residence time (τ) and standard deviation calculation per facet.
-    - [ ] Implement plotting for average K_D, ΔG_D, and mean τ per facet.
-    - [ ] Define clear outputs (plot file paths).
-    - [ ] Add command-line arguments for all inputs and outputs.
+    - [x] Define clear inputs (fragment metrics CSV path, parameters like cutoff, temperature, min event duration, min event threshold).
+    - [x] Implement data loading (fragment metrics CSV).
+    - [x] Implement sampling interval calculation.
+    - [x] Implement robust overall and per-facet K_D calculation (Time Off / Time On).
+    - [x] Implement robust ΔG_D calculation (using T=453 K).
+    - [x] Implement robust event counting per facet.
+    - [x] Implement filtering of facets with N_events < 10.
+    - [x] Implement robust mean residence time (τ) and standard deviation calculation per facet.
+    - [x] Implement plotting for average K_D, ΔG_D, and mean τ per facet.
+    - [x] Define clear outputs (plot file paths).
+    - [x] Add command-line arguments for all inputs and outputs.
 
 ### Phase 5: Pipeline Stage 4 - Convergence Analysis (`analyze_convergence.py`)
 
