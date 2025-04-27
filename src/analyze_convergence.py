@@ -110,7 +110,7 @@ def analyze_convergence(fragment_metrics_csv, output_dir):
                 continue
 
             # Identify continuous binding events (distance < cutoff) by iterating through rows
-            is_bound_series = fragment_df['min_distance'] < cutoff # Access min_distance by label here
+            is_bound_series = fragment_df['min_dist'] < cutoff # Access min_dist by label here
             event_starts = (is_bound_series) & (~is_bound_series.shift(1, fill_value=False))
             current_events += event_starts.sum()
 
