@@ -73,7 +73,7 @@ This document outlines the detailed tasks for regenerating the MDAnalysis data a
 
 ### Phase 6: Pipeline Stage 5 - Advanced Visualization (`plot_residence_time_traces.py`)
 
-- [~] Regenerate `plot_residence_time_traces.py`: (Partially complete: Implemented individual traces, Pt atom visualization, distance-based coloring, metrics display, and legend improvements. Remaining issues: Trace coloring not updating correctly, contacted regions count is zero on plots.)
+- [x] Regenerate `plot_residence_time_traces.py`:
     - [ ] Define clear inputs (fragment metrics CSV path, parameters for molecule selection).
     - [ ] Implement data loading (fragment metrics CSV).
     - [ ] Implement robust selection of "high-mover" molecules (by facet coverage and spatial excursion - potentially simplified initially).

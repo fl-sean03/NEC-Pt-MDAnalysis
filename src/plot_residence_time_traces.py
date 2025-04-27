@@ -137,6 +137,7 @@ def plot_single_trace(df_single_fragment: pd.DataFrame, df_pt_atoms: pd.DataFram
     for i in range(len(df_single_fragment)):
         p1 = df_single_fragment.iloc[i]
         if p1['min_dist'] <= distance_cutoff and pd.notna(p1['nearest_pt_class']):
+            print(f"DEBUG: Contacted region condition met at frame {p1['frame']}: min_dist={p1['min_dist']:.2f}, nearest_pt_class={p1['nearest_pt_class']}") # New debug print
             contacted_regions.add(p1['nearest_pt_class'])
     num_contacted_regions = len(contacted_regions)
 
@@ -258,17 +259,6 @@ def main():
     print("Columns:", df.columns.tolist())
     print("----------------------\n")
 
-    # Check min_dist values for selected fragments
-    print("\n--- MinDist for Selected Fragments ---")
-    for frag_id, selection_type in selected_fragments.items():
-        if frag_id in df['fragment_id'].unique():
-            df_frag = df[df['fragment_id'] == frag_id]
-            print(f"Fragment ID {frag_id} ({selection_type}):")
-            print(df_frag[['frame', 'min_dist', 'nearest_pt_class']].to_string())
-            print("-" * 20)
-        else:
-            print(f"Fragment ID {frag_id} ({selection_type}) not found in DataFrame.")
-    print("------------------------------------\n")
 
 
     # Load universe to get Pt atom coordinates
@@ -362,6 +352,18 @@ def main():
          selected_fragments[most_events_frag_id] = 'most_events'
     if most_unique_regions_frag_id is not None and most_unique_regions_frag_id not in selected_fragments:
          selected_fragments[most_unique_regions_frag_id] = 'most_unique_regions'
+
+    # Check min_dist values for selected fragments
+    print("\n--- MinDist for Selected Fragments ---")
+    for frag_id, selection_type in selected_fragments.items():
+        if frag_id in df['fragment_id'].unique():
+            df_frag = df[df['fragment_id'] == frag_id]
+            print(f"Fragment ID {frag_id} ({selection_type}):")
+            print(df_frag[['frame', 'min_dist', 'nearest_pt_class']].to_string())
+            print("-" * 20)
+        else:
+            print(f"Fragment ID {frag_id} ({selection_type}) not found in DataFrame.")
+    print("------------------------------------\n")
 
     if not selected_fragments:
         print("No fragments found or metrics could not be calculated.")
