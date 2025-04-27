@@ -106,7 +106,6 @@ def plot_single_trace(df_single_fragment: pd.DataFrame, df_pt_atoms: pd.DataFram
         if p1['min_dist'] <= distance_cutoff:
             region = p1['nearest_pt_class']
             color = region_color_map.get(region, 'gray') # Use gray for unknown/NaN regions within cutoff
-            print(f"Frame: {p1['frame']}, Fragment: {p1['fragment_id']}, MinDist: {p1['min_dist']:.2f}, NearestRegion: {region}, AssignedColor: {color}") # Debug print
         else:
             color = 'gray' # Use gray if far from Pt surface
 
@@ -137,7 +136,6 @@ def plot_single_trace(df_single_fragment: pd.DataFrame, df_pt_atoms: pd.DataFram
     for i in range(len(df_single_fragment)):
         p1 = df_single_fragment.iloc[i]
         if p1['min_dist'] <= distance_cutoff and pd.notna(p1['nearest_pt_class']):
-            print(f"DEBUG: Contacted region condition met at frame {p1['frame']}: min_dist={p1['min_dist']:.2f}, nearest_pt_class={p1['nearest_pt_class']}") # New debug print
             contacted_regions.add(p1['nearest_pt_class'])
     num_contacted_regions = len(contacted_regions)
 

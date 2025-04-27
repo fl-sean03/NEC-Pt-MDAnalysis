@@ -15,7 +15,7 @@ This document outlines the detailed tasks for regenerating the MDAnalysis data a
 
 ### Phase 2: Pipeline Stage 1 - Data Preparation (`nec_pt_fragment_metrics.py`)
 
-- [ ] Regenerate `nec_pt_fragment_metrics.py`:
+- [ ] Regenerate `nec_pt_fragment_metrics.py`: - Partially complete. Needs correction for `min_dist` calculation (should be min distance between any fragment atom and any surface Pt atom).
     - [ ] Define clear inputs (PSF, DCD file paths, parameters like cutoffs).
     - [ ] Implement data loading using MDAnalysis.
     - [ ] Implement Pt atom classification.

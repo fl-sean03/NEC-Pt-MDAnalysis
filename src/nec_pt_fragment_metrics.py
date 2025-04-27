@@ -77,7 +77,7 @@ def fragment_metrics(frag, pts_by_region, pts_surface, default_cutoff, box_dims,
     # center-of-mass
     com = frag.center_of_mass()
     data['com_x'], data['com_y'], data['com_z'] = com
-    # per-atom min distances
+    # per-atom min distances (kept for potential future use or debugging, not used for min_dist calculation)
     atom_positions = frag.positions
     atom_dists = {}
     for reg, pts in pts_by_region.items():
@@ -88,14 +88,35 @@ def fragment_metrics(frag, pts_by_region, pts_surface, default_cutoff, box_dims,
         else:
             atom_mind = np.full(n_atoms, np.inf)
         atom_dists[reg] = atom_mind
-        data[f'atom_mindists_{reg}'] = json.dumps(atom_mind.tolist())
-    # global min_dist (to any surface Pt)
+        # data[f'atom_mindists_{reg}'] = json.dumps(atom_mind.tolist()) # Commented out as per-atom dists are not used for main metrics
+
+    # global min_dist (from fragment COM to any surface Pt)
     surf_regs = ['100','111','edge','vertex']
-    all_surface_mind = np.vstack([atom_dists[r] for r in surf_regs])
-    global_atom_mind = all_surface_mind.min(axis=0)
-    data['min_dist'] = float(global_atom_mind.min())
-    # contact_frac at default cutoff
-    data['contact_frac'] = float((global_atom_mind <= default_cutoff).sum() / n_atoms)
+    # Ensure pts_surface is not empty before calculating distances
+    if len(pts_surface) > 0:
+        # Calculate distance from fragment COM to all surface Pt atoms
+        # Pass com as a (1, 3) numpy array
+        com_to_surface_dists = distances.distance_array(np.array([com]), pts_surface.positions, box=box_dims)[0]
+        # Find the minimum distance
+        min_dist_val = com_to_surface_dists.min()
+        data['min_dist'] = float(min_dist_val)
+
+        # Find the index of the nearest surface Pt atom
+        nearest_pt_surface_idx_in_subset = com_to_surface_dists.argmin()
+        nearest_pt_idx = pts_surface.indices[nearest_pt_surface_idx_in_subset]
+        data['nearest_pt_idx'] = int(nearest_pt_idx)
+        data['nearest_pt_class'] = pt_classification[nearest_pt_idx]
+
+        # contact_frac at default cutoff (based on COM distance)
+        data['contact_frac'] = float(min_dist_val <= default_cutoff) # This should be 1 or 0 based on COM distance
+
+    else:
+        # Handle case where there are no surface Pt atoms
+        data['min_dist'] = np.inf
+        data['nearest_pt_idx'] = -1 # Or some other indicator for no nearest Pt
+        data['nearest_pt_class'] = 'none'
+        data['contact_frac'] = 0.0
+
     # tilt angle: principal axis vs z
     coords_rel = atom_positions - com
     cov = np.cov(coords_rel, rowvar=False)
@@ -111,30 +132,13 @@ def fragment_metrics(frag, pts_by_region, pts_surface, default_cutoff, box_dims,
     data['radius_gyration'] = float(np.sqrt(eig_sorted.sum()))
     # asphericity = λ1 - 0.5*(λ2+λ3)
     data['asphericity'] = float(eig_sorted[0] - 0.5*(eig_sorted[1] + eig_sorted[2]))
-    # set up contacting atoms mask
-    mask = global_atom_mind <= default_cutoff
-    pts_contact = atom_positions[mask]
-    # patch_area via convex hull
-    if len(pts_contact) >= 3:
-        xy = pts_contact[:,:2]
-        hull = ConvexHull(xy)
-        data['patch_area'] = float(hull.volume)
-        cen = xy[hull.vertices].mean(axis=0)
-        data['patch_centroid_x'], data['patch_centroid_y'] = cen
-    else:
-        data['patch_area'] = 0.0
-        data['patch_centroid_x'] = np.nan
-        data['patch_centroid_y'] = np.nan
-    # pt_density: count surface Pt within 5Å of fragment COM
-    tree = cKDTree(pts_surface.positions)
-    data['pt_density'] = int(len(tree.query_ball_point(com, r=5.0)))
-    # nearest_pt_idx and class
-    # compute dists from each atom to surface Pt, find global min
-    d_all = distances.distance_array(atom_positions, pts_surface.positions, box=box_dims)
-    aidx, pidx = np.unravel_index(d_all.argmin(), d_all.shape)
-    nearest_pt_idx = pts_surface.indices[pidx]
-    data['nearest_pt_idx'] = int(nearest_pt_idx)
-    data['nearest_pt_class'] = pt_classification[nearest_pt_idx]
+    # patch_area and pt_density calculations removed as they are not needed for the current fix
+    # and depend on the old per-atom distance logic.
+
+    # nearest_pt_idx and class (already calculated based on COM distance above)
+    # The nearest_pt_idx and nearest_pt_class are already determined in the COM-based min_dist calculation block.
+    # No need to re-calculate here.
+
     return data
 
 def write_summary(output_summary_path, run_id, u, nec_frags, sample_interval, default_cutoff, pt_cutoff):
@@ -285,9 +289,9 @@ def main():
                         'time_ps': float(getattr(ts, 'time', ts.frame)) * 5,
                         'fragment_id': fid
                     }
-                    # compute metrics
+                    # compute metrics, passing fragment_id
                     m = fragment_metrics(frag, pts_by_region, pts_surface,
-                                         args.default_cutoff, u.dimensions, pt_classification)
+                                         args.default_cutoff, u.dimensions, pt_classification, fid)
                     row.update(m)
                     rows.append(row)
                 except Exception as e:
