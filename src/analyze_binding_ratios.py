@@ -1,13 +1,16 @@
-#!/usr/bin/env python3
+calculate_residence_events#!/usr/bin/env python3
 """
 Regenerated script to compute and plot dissociation constants per molecule and per Pt region.
 """
+:start_line:5
+-------
 import argparse
 import os
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import math
+from residence_analysis_utils import find_residence_events_per_region, count_residence_events_per_region # Import utility functions
 
 def compute_dt_ns(df):
     """
@@ -64,37 +67,7 @@ def calculate_dissociation_constants(df, dt_ns, cutoff):
 
     return dissociation_data, regions
 
-def count_residence_events(df, dt_ns, cutoff, min_duration_ns):
-    """
-    For each Pt region, count contiguous residence events where the nearest atom
-    is within cutoff (Å) for at least min_duration_ns.
-    Returns a dict: region -> event count.
-    """
-    regions = sorted(df['nearest_pt_class'].dropna().unique())
-    event_counts = {reg: 0 for reg in regions}
-    min_frames = int(math.ceil(min_duration_ns / dt_ns))
-
-    for frag_id, grp in df.groupby('fragment_id'):
-        grp = grp[['time_ps', 'nearest_pt_class', 'min_dist']]
-        grp = grp.sort_values('time_ps').reset_index(drop=True)
-        n = len(grp)
-
-        for region in regions:
-            mask = ((grp['nearest_pt_class'] == region) &
-                    (grp['min_dist'] <= cutoff)).values
-            i = 0
-            while i < n:
-                if mask[i]:
-                    j = i + 1
-                    while j < n and mask[j]:
-                        j += 1
-                    run_length = j - i
-                    if run_length >= min_frames:
-                        event_counts[region] += 1
-                    i = j
-                else:
-                    i += 1
-    return event_counts
+# Removed the old count_residence_events function
 
 def calculate_delta_g_d(k_d, temp_k=453.0):
     """
@@ -117,7 +90,7 @@ def calculate_average_facet_metrics(df, dt_ns, cutoff, dissociation_data, region
     Returns a dictionary: region -> { 'avg_k_d': float, 'avg_delta_g_d': float, 'mean_tau': float, 'std_tau': float, 'n_events': int }
     """
     avg_facet_metrics = {}
-    min_frames = int(math.ceil(0.1 / dt_ns)) # Use 0.1 ns minimum duration for tau calculation
+    min_tau_duration_ns = 0.1 # Use 0.1 ns minimum duration for tau calculation
 
     for region in regions:
         if region not in event_counts or event_counts[region] < min_event_threshold:
@@ -125,26 +98,16 @@ def calculate_average_facet_metrics(df, dt_ns, cutoff, dissociation_data, region
             continue
 
         constants_for_facet = []
-        durations_for_facet = [] # in ns
+        all_durations_for_facet = [] # in ns
 
         for frag_id, data in dissociation_data.items():
-            # Re-process fragment data to get residence durations for this region
-            frag_df = df[df['fragment_id'] == frag_id].sort_values('time_ps').reset_index(drop=True)
-            n = len(frag_df)
-            mask = ((frag_df['nearest_pt_class'] == region) &
-                    (frag_df['min_dist'] <= cutoff)).values
-            i = 0
-            while i < n:
-                if mask[i]:
-                    j = i + 1
-                    while j < n and mask[j]:
-                        j += 1
-                    run_length = j - i
-                    if run_length >= min_frames:
-                        durations_for_facet.append(run_length * dt_ns)
-                    i = j
-                else:
-                    i += 1
+            # Use the utility function to get residence durations for this fragment and region
+            frag_df = df[df['fragment_id'] == frag_id]
+            frag_durations = find_residence_events_per_region(
+                frag_df, dt_ns, cutoff, min_tau_duration_ns, [region] # Pass only the current region
+            )
+            all_durations_for_facet.extend(frag_durations.get(region, []))
+
 
             if region in data['contacted_facets']:
                  if data['facet_constants'][region] != float('inf'):
@@ -153,8 +116,8 @@ def calculate_average_facet_metrics(df, dt_ns, cutoff, dissociation_data, region
         avg_k_d = np.mean(constants_for_facet) if constants_for_facet else 0.0
         avg_delta_g_d = calculate_delta_g_d(avg_k_d, temp_k)
 
-        mean_tau = np.mean(durations_for_facet) if durations_for_facet else 0.0
-        std_tau = np.std(durations_for_facet) if durations_for_facet else 0.0
+        mean_tau = np.mean(all_durations_for_facet) if all_durations_for_facet else 0.0
+        std_tau = np.std(all_durations_for_facet) if all_durations_for_facet else 0.0
 
         avg_facet_metrics[region] = {
             'avg_k_d': avg_k_d,
@@ -268,6 +231,12 @@ def main():
         print(f"An unexpected error occurred while determining sampling interval: {e}")
         return
 
+    # Get unique non-NaN regions
+    regions = sorted(df['nearest_pt_class'].dropna().unique())
+    if not regions:
+        print("No valid Pt regions found in the data.")
+        return
+
     # calculate dissociation constants per fragment
     try:
         dissociation_data, regions = calculate_dissociation_constants(df, dt_ns, args.cutoff)
@@ -275,16 +244,23 @@ def main():
         print(f"Error calculating dissociation constants: {e}")
         return
 
-    # count residence events per region
+    # count residence events per region using the utility function
+    all_event_counts = {reg: 0 for reg in regions}
     try:
-        event_counts = count_residence_events(df, dt_ns, args.cutoff, args.min_event_duration)
+        for frag_id, grp in df.groupby('fragment_id'):
+             frag_event_counts = count_residence_events_per_region(
+                 grp, dt_ns, args.cutoff, args.min_event_duration, regions
+             )
+             for region, count in frag_event_counts.items():
+                 all_event_counts[region] += count
     except Exception as e:
         print(f"Error counting residence events: {e}")
         return
 
+
     # calculate average facet metrics
     try:
-        avg_facet_metrics = calculate_average_facet_metrics(df, dt_ns, args.cutoff, dissociation_data, regions, event_counts, args.min_event_threshold, args.temperature)
+        avg_facet_metrics = calculate_average_facet_metrics(df, dt_ns, args.cutoff, dissociation_data, regions, all_event_counts, args.min_event_threshold, args.temperature)
     except Exception as e:
         print(f"Error calculating average facet metrics: {e}")
         return

@@ -15,7 +15,7 @@ This document outlines the detailed tasks for regenerating the MDAnalysis data a
 
 ### Phase 2: Pipeline Stage 1 - Data Preparation (`nec_pt_fragment_metrics.py`)
 
-- [ ] Regenerate `nec_pt_fragment_metrics.py`: - Partially complete. Needs correction for `min_dist` calculation (should be min distance between any fragment atom and any surface Pt atom).
+- [x] Regenerate `nec_pt_fragment_metrics.py`: - Complete. Corrected `min_dist` calculation and implemented output.
     - [ ] Define clear inputs (PSF, DCD file paths, parameters like cutoffs).
     - [ ] Implement data loading using MDAnalysis.
     - [ ] Implement Pt atom classification.
@@ -27,7 +27,7 @@ This document outlines the detailed tasks for regenerating the MDAnalysis data a
 
 ### Phase 3: Pipeline Stage 2 - Residence Time Analysis (`analyze_residence_times.py`, `analyze_max_residence_times.py`)
 
-- [ ] Regenerate `analyze_residence_times.py`:
+- [x] Regenerate `analyze_residence_times.py`: - Complete. Refactored to use utility function for residence event calculation.
     - [ ] Define clear inputs (fragment metrics CSV path, parameters like cutoff, min duration).
     - [ ] Implement data loading (fragment metrics CSV).
     - [ ] Implement sampling interval calculation.
@@ -35,7 +35,7 @@ This document outlines the detailed tasks for regenerating the MDAnalysis data a
     - [ ] Implement residence time histogram plotting.
     - [ ] Define clear outputs (histogram plot file paths).
     - [ ] Add command-line arguments for all inputs and outputs.
-- [ ] Regenerate `analyze_max_residence_times.py`:
+- [x] Regenerate `analyze_max_residence_times.py`: - Complete.
     - [ ] Define clear inputs (fragment metrics CSV path, parameters like cutoff).
     - [ ] Implement data loading (fragment metrics CSV).
     - [ ] Implement sampling interval calculation.
@@ -61,7 +61,7 @@ This document outlines the detailed tasks for regenerating the MDAnalysis data a
 
 ### Phase 5: Pipeline Stage 4 - Convergence Analysis (`analyze_convergence.py`)
 
-- [x] Regenerate `analyze_convergence.py`:
+- [x] Regenerate `analyze_convergence.py`: - Complete.
 - [x] Define clear inputs (fragment metrics CSV path).
 - [x] Implement data loading (fragment metrics CSV).
 - [x] Implement robust unique-facet coverage calculation and plotting.
@@ -73,7 +73,7 @@ This document outlines the detailed tasks for regenerating the MDAnalysis data a
 
 ### Phase 6: Pipeline Stage 5 - Advanced Visualization (`plot_residence_time_traces.py`)
 
-- [x] Regenerate `plot_residence_time_traces.py`:
+- [x] Regenerate `plot_residence_time_traces.py`: - Complete. Refactored to use utility function for residence event calculation and updated plotting.
     - [ ] Define clear inputs (fragment metrics CSV path, parameters for molecule selection).
     - [ ] Implement data loading (fragment metrics CSV).
     - [ ] Implement robust selection of "high-mover" molecules (by facet coverage and spatial excursion - potentially simplified initially).

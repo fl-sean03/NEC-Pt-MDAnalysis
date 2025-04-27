@@ -2,6 +2,8 @@
 """
 Regenerated script to compute residence time histograms for fragment contacts per Pt region.
 """
+:start_line:5
+-------
 import argparse
 import os
 import numpy as np
@@ -9,6 +11,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import math
 import itertools
+from residence_analysis_utils import find_residence_events_per_region # Import the new utility function
 
 def compute_dt_ps(df):
     """
@@ -20,37 +23,7 @@ def compute_dt_ps(df):
     dt = np.median(np.diff(times))
     return float(dt)
 
-def compute_residence_times(df, dt, cutoff, min_frames):
-    """
-    For each Pt region and each fragment, find contiguous residence events
-    where the nearest atom is within cutoff (Å) for at least min_frames samples.
-    Returns a dict: region -> list of durations (in ns).
-    """
-    regions = sorted(df['nearest_pt_class'].dropna().unique())
-    durations = {reg: [] for reg in regions}
-    # group by fragment
-    for frag_id, grp in df.groupby('fragment_id'):
-        grp = grp[['time_ps', 'nearest_pt_class', 'min_dist']]
-        grp = grp.sort_values('time_ps').reset_index(drop=True)
-        n = len(grp)
-        # scan per region
-        for region in regions:
-            mask = ((grp['nearest_pt_class'] == region) &
-                    (grp['min_dist'] <= cutoff)).values
-            i = 0
-            while i < n:
-                if mask[i]:
-                    # start of residence event
-                    j = i + 1
-                    while j < n and mask[j]:
-                        j += 1
-                    run_length = j - i
-                    if run_length >= min_frames:
-                        durations[region].append(run_length * dt)
-                    i = j
-                else:
-                    i += 1
-    return durations
+# Removed the old compute_residence_times function
 
 def plot_histograms(durations, outdir, run_id, max_bin=None, bins=50):
     """
@@ -60,7 +33,7 @@ def plot_histograms(durations, outdir, run_id, max_bin=None, bins=50):
     for region, times in durations.items():
         if not times:
             print(f'No contact/residence events to plot for region: {region}')
-            continue
+            continue # Corrected continue statement
         arr = np.array(times)
         mb = max_bin if max_bin is not None else arr.max()
         edges = np.linspace(0, mb, bins + 1)
@@ -221,13 +194,21 @@ def main():
         print(f"An unexpected error occurred while determining sampling interval: {e}")
         return
 
-    # compute minimum frames from min-duration
-    min_frames = int(math.ceil(args.min_duration / dt))
-    print(f'Filtering for residence >= {args.min_duration} ns = {min_frames} frames (cutoff {args.cutoff} Å)')
+    # Get unique non-NaN regions
+    regions = sorted(df['nearest_pt_class'].dropna().unique())
+    if not regions:
+        print("No valid Pt regions found in the data.")
+        return
 
-    # compute residence durations (in ns)
+    # Compute residence durations (in ns) using the utility function
+    all_durations = {reg: [] for reg in regions}
     try:
-        durations = compute_residence_times(df, dt, args.cutoff, min_frames)
+        for frag_id, grp in df.groupby('fragment_id'):
+            frag_durations = find_residence_events_per_region(
+                grp, dt, args.cutoff, args.min_duration, regions
+            )
+            for region, durations_list in frag_durations.items():
+                all_durations[region].extend(durations_list)
     except Exception as e:
         print(f"Error computing residence times: {e}")
         return
@@ -248,11 +229,11 @@ def main():
     # plot and save histograms
     try:
         if args.side_by_side:
-            plot_side_by_side(durations, plot_output_dir, run_id, max_bin=args.max_bin, bins=args.bins)
+            plot_side_by_side(all_durations, plot_output_dir, run_id, max_bin=args.max_bin, bins=args.bins)
         elif args.overlay:
-            plot_overlay(durations, plot_output_dir, run_id, max_bin=args.max_bin, bins=args.bins)
+            plot_overlay(all_durations, plot_output_dir, run_id, max_bin=args.max_bin, bins=args.bins)
         else:
-            plot_histograms(durations, plot_output_dir, run_id, max_bin=args.max_bin, bins=args.bins)
+            plot_histograms(all_durations, plot_output_dir, run_id, max_bin=args.max_bin, bins=args.bins)
     except Exception as e:
         print(f"Error generating plots: {e}")
         return

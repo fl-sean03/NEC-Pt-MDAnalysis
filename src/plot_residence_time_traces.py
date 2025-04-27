@@ -2,6 +2,10 @@
 """
 Regenerated script to generate 3D trajectory traces for selected molecules, colored by Pt region.
 """
+:start_line:5
+-------
+:start_line:7
+-------
 import argparse
 import os
 import numpy as np
@@ -12,6 +16,7 @@ from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.cm as cm
 import sys
 from scipy.spatial.distance import cdist
+from residence_analysis_utils import count_total_residence_events # Import the new utility function
 
 def calculate_spatial_excursion(df_fragment: pd.DataFrame) -> float:
     """
@@ -29,44 +34,9 @@ def calculate_spatial_excursion(df_fragment: pd.DataFrame) -> float:
     # Calculate pairwise distances and return the maximum
     return cdist(coords, coords).max()
 
-def calculate_residence_events(df_fragment: pd.DataFrame, min_duration_frames: int) -> int:
-    """
-    Calculate the number of residence events for a fragment based on contiguous regions.
+# Removed the old calculate_residence_events function
 
-    Args:
-        df_fragment (pd.DataFrame): DataFrame containing 'nearest_pt_class' for a single fragment.
-        min_duration_frames (int): Minimum duration of a residence event in frames.
-
-    Returns:
-        int: The number of residence events.
-    """
-    if df_fragment.empty:
-        return 0
-
-    # Identify consecutive identical regions (including NaN)
-    regions = df_fragment['nearest_pt_class'].fillna('NaN').tolist()
-    event_count = 0
-    current_event_duration = 0
-    current_region = None
-
-    for region in regions:
-        if region == current_region:
-            current_event_duration += 1
-        else:
-            # Check if the previous block was a valid residence event (not NaN and long enough)
-            if current_region != 'NaN' and current_event_duration >= min_duration_frames:
-                event_count += 1
-            current_region = region
-            current_event_duration = 1 # Start new block duration
-
-    # Check the last block
-    if current_region != 'NaN' and current_event_duration >= min_duration_frames:
-        event_count += 1
-
-    return event_count
-
-
-def calculate_unique_regions(df_fragment: pd.DataFrame) -> int:
+def calculate_unique_regions(df_fragment: pd.DataFrame, distance_cutoff: float) -> int:
     """
     Calculate the number of unique Pt regions a fragment visited.
 
@@ -76,9 +46,11 @@ def calculate_unique_regions(df_fragment: pd.DataFrame) -> int:
     Returns:
         int: The number of unique non-NaN Pt regions.
     """
-    return df_fragment['nearest_pt_class'].dropna().nunique()
+    # Filter for frames within the distance cutoff before counting unique regions
+    contact_frames_df = df_fragment[df_fragment['min_dist'] <= distance_cutoff]
+    return contact_frames_df['nearest_pt_class'].dropna().nunique()
 
-def plot_single_trace(df_single_fragment: pd.DataFrame, df_pt_atoms: pd.DataFrame, output_path: str, title: str, region_color_map: dict, regions: list, distance_cutoff: float):
+def plot_single_trace(df_single_fragment: pd.DataFrame, df_pt_atoms: pd.DataFrame, output_path: str, title: str, region_color_map: dict, regions: list, distance_cutoff: float, box_dims: np.ndarray):
     """
     Generate a 3D trajectory trace for a single fragment and plot Pt atoms, colored by Pt region.
 
@@ -102,12 +74,8 @@ def plot_single_trace(df_single_fragment: pd.DataFrame, df_pt_atoms: pd.DataFram
     for i in range(len(df_single_fragment) - 1):
         p1 = df_single_fragment.iloc[i]
         p2 = df_single_fragment.iloc[i+1]
-        # Determine color based on distance and region
-        if p1['min_dist'] <= distance_cutoff:
-            region = p1['nearest_pt_class']
-            color = region_color_map.get(region, 'gray') # Use gray for unknown/NaN regions within cutoff
-        else:
-            color = 'gray' # Use gray if far from Pt surface
+        # Set color to gray regardless of distance or region
+        color = 'gray'
 
         ax.plot([p1['com_x'], p2['com_x']], [p1['com_y'], p2['com_y']], [p1['com_z'], p2['com_z']], color=color, alpha=0.7, linewidth=1)
 
@@ -156,12 +124,13 @@ def plot_single_trace(df_single_fragment: pd.DataFrame, df_pt_atoms: pd.DataFram
     ax.set_xlabel('COM X (Å)')
     ax.set_ylabel('COM Y (Å)')
     ax.set_zlabel('COM Z (Å)')
+
+    # Set axis limits based on simulation box dimensions
+    ax.set_xlim(0, box_dims[0])
+    ax.set_ylim(0, box_dims[1])
+    ax.set_zlim(0, box_dims[2])
     ax.set_title(title)
 
-    # Create legend for fragment trace colors
-    fragment_legend_elements = [plt.Line2D([0], [0], color=region_color_map[region], lw=4, label=region) for region in regions if region != 'NaN']
-    if 'NaN' in regions or (df_single_fragment['min_dist'] > distance_cutoff).any():
-         fragment_legend_elements.append(plt.Line2D([0], [0], color='gray', lw=4, label='Fragment (Far/Unknown)'))
 
     # Create legend for Pt atom colors/markers
     pt_legend_elements = [plt.Line2D([0], [0], marker='o', color='w', label=f'Pt ({region})',
@@ -179,8 +148,6 @@ def plot_single_trace(df_single_fragment: pd.DataFrame, df_pt_atoms: pd.DataFram
 
     # Position the legends
     # Fragment legend
-    legend1 = ax.legend(handles=fragment_legend_elements, title="Fragment Region", loc='upper left', bbox_to_anchor=(1.05, 1), borderaxespad=0.)
-    ax.add_artist(legend1) # Add the first legend manually to the axes
 
     # Pt atom legend
     legend2 = ax.legend(handles=pt_legend_elements, title="Pt Region", loc='upper left', bbox_to_anchor=(1.05, 0.7), borderaxespad=0.)
@@ -325,8 +292,8 @@ def main():
 
     for frag_id, df_fragment in df.groupby('fragment_id'):
         spatial_excursion = calculate_spatial_excursion(df_fragment)
-        residence_events = calculate_residence_events(df_fragment, min_duration_frames)
-        unique_regions = calculate_unique_regions(df_fragment)
+        residence_events = count_total_residence_events(df_fragment, args.frame_time_step_ns, args.distance_cutoff, args.min_residence_duration_ns) # Use utility function
+        unique_regions = calculate_unique_regions(df_fragment, args.distance_cutoff)
         fragment_metrics[frag_id] = {
             'spatial_excursion': spatial_excursion,
             'residence_events': residence_events,
@@ -386,7 +353,7 @@ def main():
         output_fname = f"{run_id}_fragment_{frag_id}_{selection_type}_trace_with_pt.png"
         output_path = os.path.join(plot_output_dir, output_fname)
         title = f'{run_id} Fragment {frag_id} Trace ({selection_type.replace("_", " ").title()}) with Pt Atoms'
-        plot_single_trace(df_single_fragment, df_pt_atoms, output_path, title, region_color_map, regions, args.distance_cutoff)
+        plot_single_trace(df_single_fragment, df_pt_atoms, output_path, title, region_color_map, regions, args.distance_cutoff, u.dimensions)
 
 
     print("Residence time traces plotting complete for selected fragments with Pt atoms.")

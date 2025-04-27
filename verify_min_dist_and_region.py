@@ -51,10 +51,10 @@ def classify_pt_atoms(u, pt_cutoff):
 # ----- Main verification logic -----
 psf_path = 'data/0H/0HPt.psf'
 dcd_path = 'data/0H/out_eq.dcd'
-csv_path = 'outputs/com_metrics_run/com_fragment_metrics.csv' # Updated to use the new CSV
-json_path = 'outputs/com_metrics_run/com_pt_classification.json' # Updated to use the new JSON
+csv_path = 'outputs/atom_atom_metrics_run_50frames/atom_atom_fragment_metrics_50frames.csv'
+json_path = 'outputs/atom_atom_metrics_run_50frames/atom_atom_pt_classification_50frames.json'
 fragment_id_to_check = 20 # Fragment ID for "most unique regions"
-sample_interval = 500 # Updated to match the CSV generation sample interval
+sample_interval = 50 # Updated to match the CSV generation sample interval
 distance_tolerance = 0.05 # Increased tolerance for comparing distances
 pt_classification_cutoff = 3.0 # Cutoff used in nec_pt_fragment_metrics.py
 
@@ -114,20 +114,26 @@ try:
                  continue # Skip this frame/fragment
 
 
-            # Calculate distance from fragment COM to surface Pt atoms
+            # Calculate minimum distance between any fragment atom and any surface Pt atom
             if len(pts_surface) > 0:
-                # Pass com as a (1, 3) numpy array
-                dists_to_surface_pt = distances.distance_array(np.array([com]), pts_surface.positions, box=u.dimensions)[0]
+                # Calculate distance matrix between all fragment atoms and all surface Pt atoms
+                atom_to_surface_dists = distances.distance_array(fragment_to_check.positions, pts_surface.positions, box=u.dimensions)
 
-                # Find minimum distance and nearest surface Pt atom index
-                calculated_min_dist = np.min(dists_to_surface_pt)
-                nearest_pt_atom_index_in_surface_selection = np.argmin(dists_to_surface_pt)
-                nearest_pt_atom_index_in_universe = pts_surface.indices[nearest_pt_atom_index_in_surface_selection]
+                # Find the minimum distance across the entire matrix
+                calculated_min_dist = np.min(atom_to_surface_dists)
+
+                # Find the indices of the fragment atom and surface Pt atom that are closest
+                # unravel_index gives the indices in the original matrix
+                frag_atom_idx_in_subset, nearest_pt_surface_idx_in_subset = np.unravel_index(
+                    atom_to_surface_dists.argmin(), atom_to_surface_dists.shape
+                )
+
+                # Get the global index of the nearest surface Pt atom
+                nearest_pt_atom_index_in_universe = pts_surface.indices[nearest_pt_surface_idx_in_subset]
 
                 # Get calculated nearest Pt atom classification
                 calculated_nearest_pt_class = pt_classification.get(nearest_pt_atom_index_in_universe, 'Unknown')
 
-                # Debug print statements for Frame 500 and Fragment ID 20
             else:
                 # Handle case where there are no surface Pt atoms
                 calculated_min_dist = np.inf

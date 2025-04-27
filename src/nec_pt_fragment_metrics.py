@@ -90,25 +90,29 @@ def fragment_metrics(frag, pts_by_region, pts_surface, default_cutoff, box_dims,
         atom_dists[reg] = atom_mind
         # data[f'atom_mindists_{reg}'] = json.dumps(atom_mind.tolist()) # Commented out as per-atom dists are not used for main metrics
 
-    # global min_dist (from fragment COM to any surface Pt)
-    surf_regs = ['100','111','edge','vertex']
+    # global min_dist (minimum distance between any fragment atom and any surface Pt atom)
     # Ensure pts_surface is not empty before calculating distances
     if len(pts_surface) > 0:
-        # Calculate distance from fragment COM to all surface Pt atoms
-        # Pass com as a (1, 3) numpy array
-        com_to_surface_dists = distances.distance_array(np.array([com]), pts_surface.positions, box=box_dims)[0]
-        # Find the minimum distance
-        min_dist_val = com_to_surface_dists.min()
+        # Calculate distance matrix between all fragment atoms and all surface Pt atoms
+        atom_to_surface_dists = distances.distance_array(frag.positions, pts_surface.positions, box=box_dims)
+
+        # Find the minimum distance across the entire matrix
+        min_dist_val = atom_to_surface_dists.min()
         data['min_dist'] = float(min_dist_val)
 
-        # Find the index of the nearest surface Pt atom
-        nearest_pt_surface_idx_in_subset = com_to_surface_dists.argmin()
+        # Find the indices of the fragment atom and surface Pt atom that are closest
+        # unravel_index gives the indices in the original matrix
+        frag_atom_idx_in_subset, nearest_pt_surface_idx_in_subset = np.unravel_index(
+            atom_to_surface_dists.argmin(), atom_to_surface_dists.shape
+        )
+
+        # Get the global index of the nearest surface Pt atom
         nearest_pt_idx = pts_surface.indices[nearest_pt_surface_idx_in_subset]
         data['nearest_pt_idx'] = int(nearest_pt_idx)
         data['nearest_pt_class'] = pt_classification[nearest_pt_idx]
 
-        # contact_frac at default cutoff (based on COM distance)
-        data['contact_frac'] = float(min_dist_val <= default_cutoff) # This should be 1 or 0 based on COM distance
+        # contact_frac at default cutoff (based on atom-atom minimum distance)
+        data['contact_frac'] = float(min_dist_val <= default_cutoff) # This should be 1 or 0 based on atom-atom min distance
 
     else:
         # Handle case where there are no surface Pt atoms
@@ -291,7 +295,7 @@ def main():
                     }
                     # compute metrics, passing fragment_id
                     m = fragment_metrics(frag, pts_by_region, pts_surface,
-                                         args.default_cutoff, u.dimensions, pt_classification, fid)
+                                         args.default_cutoff, u.dimensions, pt_classification)
                     row.update(m)
                     rows.append(row)
                 except Exception as e:
