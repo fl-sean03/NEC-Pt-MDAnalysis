@@ -1,3 +1,4 @@
+import json
 #!/usr/bin/env python3
 """
 Regenerated script to compute and plot dissociation constants per molecule and per Pt region.
@@ -203,6 +204,10 @@ def main():
     parser.add_argument('--temperature', type=float, default=453.0, help='Temperature in Kelvin for ΔG_D calculation')
     parser.add_argument('--min-event-duration', type=float, default=0.1, help='Minimum contiguous residence time (ns) for event counting')
     parser.add_argument('--min-event-threshold', type=int, default=10, help='Minimum event count for facet inclusion in averages')
+    parser.add_argument(
+        '--output-json', required=False, # Make output-json optional
+        help='Path to the output JSON file for the summary results.'
+    )
     args = parser.parse_args()
 
     # load data
@@ -210,10 +215,21 @@ def main():
         df = pd.read_csv(args.csv)
     except FileNotFoundError:
         print(f"Error: Input CSV file not found at {args.csv}")
-        return
+        # If output-json is provided, write an error summary
+        if args.output_json:
+            error_summary = {"stage": "Binding Metrics Analysis", "error": f"Input CSV file not found at {args.csv}"}
+            with open(args.output_json, 'w') as f:
+                json.dump(error_summary, f, indent=4)
+        sys.exit(1) # Exit with error code
     except Exception as e:
         print(f"Error loading CSV file: {e}")
-        return
+        # If output-json is provided, write an error summary
+        if args.output_json:
+            error_summary = {"stage": "Binding Metrics Analysis", "error": f"Error loading CSV file: {e}"}
+            with open(args.output_json, 'w') as f:
+                json.dump(error_summary, f, indent=4)
+        sys.exit(1) # Exit with error code
+
 
     # infer run_id
     run_id = df['run_id'].iloc[0] if 'run_id' in df.columns else os.path.splitext(os.path.basename(args.csv))[0]
@@ -224,23 +240,45 @@ def main():
         print(f'Sampling interval: {dt_ns:.3f} ns')
     except ValueError as e:
         print(f"Error determining sampling interval: {e}")
-        return
+        # If output-json is provided, write an error summary
+        if args.output_json:
+            error_summary = {"stage": "Binding Metrics Analysis", "error": f"Error determining sampling interval: {e}"}
+            with open(args.output_json, 'w') as f:
+                json.dump(error_summary, f, indent=4)
+        sys.exit(1) # Exit with error code
     except Exception as e:
         print(f"An unexpected error occurred while determining sampling interval: {e}")
-        return
+        # If output-json is provided, write an error summary
+        if args.output_json:
+            error_summary = {"stage": "Binding Metrics Analysis", "error": f"An unexpected error occurred while determining sampling interval: {e}"}
+            with open(args.output_json, 'w') as f:
+                json.dump(error_summary, f, indent=4)
+        sys.exit(1) # Exit with error code
+
 
     # Get unique non-NaN regions
     regions = sorted(df['nearest_pt_class'].dropna().unique())
     if not regions:
         print("No valid Pt regions found in the data.")
-        return
+        # If output-json is provided, write a summary indicating no regions found
+        if args.output_json:
+            no_regions_summary = {"stage": "Binding Metrics Analysis", "message": "No valid Pt regions found in the data."}
+            with open(args.output_json, 'w') as f:
+                json.dump(no_regions_summary, f, indent=4)
+        sys.exit(0) # Exit successfully as no analysis is possible
+
 
     # calculate dissociation constants per fragment
     try:
         dissociation_data, regions = calculate_dissociation_constants(df, dt_ns, args.cutoff)
     except Exception as e:
         print(f"Error calculating dissociation constants: {e}")
-        return
+        # If output-json is provided, write an error summary
+        if args.output_json:
+            error_summary = {"stage": "Binding Metrics Analysis", "error": f"Error calculating dissociation constants: {e}"}
+            with open(args.output_json, 'w') as f:
+                json.dump(error_summary, f, indent=4)
+        sys.exit(1) # Exit with error code
 
     # count residence events per region using the utility function
     all_event_counts = {reg: 0 for reg in regions}
@@ -253,7 +291,12 @@ def main():
                  all_event_counts[region] += count
     except Exception as e:
         print(f"Error counting residence events: {e}")
-        return
+        # If output-json is provided, write an error summary
+        if args.output_json:
+            error_summary = {"stage": "Binding Metrics Analysis", "error": f"Error counting residence events: {e}"}
+            with open(args.output_json, 'w') as f:
+                json.dump(error_summary, f, indent=4)
+        sys.exit(1) # Exit with error code
 
 
     # calculate average facet metrics
@@ -261,7 +304,13 @@ def main():
         avg_facet_metrics = calculate_average_facet_metrics(df, dt_ns, args.cutoff, dissociation_data, regions, all_event_counts, args.min_event_threshold, args.temperature)
     except Exception as e:
         print(f"Error calculating average facet metrics: {e}")
-        return
+        # If output-json is provided, write an error summary
+        if args.output_json:
+            error_summary = {"stage": "Binding Metrics Analysis", "error": f"Error calculating average facet metrics: {e}"}
+            with open(args.output_json, 'w') as f:
+                json.dump(error_summary, f, indent=4)
+        sys.exit(1) # Exit with error code
+
 
     # Construct the output directory based on run_id
     # Assuming output structure like outputs/<run_id>/binding_metrics_plots
@@ -277,14 +326,23 @@ def main():
     os.makedirs(plot_output_dir, exist_ok=True)
 
     # plot and save metrics
+    generated_plots = []
     if avg_facet_metrics:
         try:
             plot_average_k_d(avg_facet_metrics, plot_output_dir, run_id)
+            generated_plots.append(os.path.join(plot_output_dir, f"{run_id}_avg_k_d_per_region.png"))
             plot_average_delta_g_d(avg_facet_metrics, plot_output_dir, run_id)
+            generated_plots.append(os.path.join(plot_output_dir, f"{run_id}_avg_delta_g_d_per_region.png"))
             plot_mean_tau(avg_facet_metrics, plot_output_dir, run_id)
+            generated_plots.append(os.path.join(plot_output_dir, f"{run_id}_mean_tau_per_region.png"))
         except Exception as e:
             print(f"Error generating plots: {e}")
-            return
+            # If output-json is provided, write an error summary
+            if args.output_json:
+                error_summary = {"stage": "Binding Metrics Analysis", "error": f"Error generating plots: {e}"}
+                with open(args.output_json, 'w') as f:
+                    json.dump(error_summary, f, indent=4)
+            sys.exit(1) # Exit with error code
     else:
         print("No average facet metrics to plot.")
 
@@ -292,16 +350,20 @@ def main():
     summary_results = {
         "stage": "Binding Metrics Analysis",
         "average_facet_metrics": avg_facet_metrics,
-        "generated_plots": []
+        "generated_plots": generated_plots # Use the collected plot paths
     }
 
-    # Collect generated plot paths
-    if avg_facet_metrics:
-        summary_results["generated_plots"].append(os.path.join(plot_output_dir, f"{run_id}_avg_k_d_per_region.png"))
-        summary_results["generated_plots"].append(os.path.join(plot_output_dir, f"{run_id}_avg_delta_g_d_per_region.png"))
-        summary_results["generated_plots"].append(os.path.join(plot_output_dir, f"{run_id}_mean_tau_per_region.png"))
+    # Save summary results to JSON file if output-json is provided
+    if args.output_json:
+        try:
+            with open(args.output_json, 'w') as f:
+                json.dump(summary_results, f, indent=4)
+            print(f"Exported summary: {args.output_json}")
+        except Exception as e:
+            print(f"Error saving summary JSON to {args.output_json}: {e}")
+            # Continue without exiting, as the analysis itself was successful
 
-    # Print summary results as JSON to stdout
+    # Print summary results as JSON to stdout (still keep for orchestrator)
     print(json.dumps(summary_results))
 
     print("Binding metrics analysis complete.")

@@ -1,3 +1,4 @@
+import json
 import argparse
 import MDAnalysis as mda
 import numpy as np
@@ -5,15 +6,22 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import os
 
-def analyze_convergence(fragment_metrics_csv, output_dir, run_id):
+def analyze_convergence(fragment_metrics_csv, output_dir, run_id, output_json=None):
     """
     Analyzes convergence metrics from fragment metrics data.
 
     Args:
         fragment_metrics_csv (str): Path to the fragment metrics CSV file.
         output_dir (str): Directory to save output plots.
+        run_id (str): Run ID for plot filenames.
+        output_json (str, optional): Path to the output JSON file for the summary results.
     """
     print(f"Analyzing convergence from {fragment_metrics_csv}")
+
+    # If output-json is provided, ensure its directory exists
+    if output_json:
+        output_json_dir = os.path.dirname(output_json)
+        os.makedirs(output_json_dir, exist_ok=True)
 
     # Ensure output directory exists
     os.makedirs(output_dir, exist_ok=True)
@@ -23,10 +31,20 @@ def analyze_convergence(fragment_metrics_csv, output_dir, run_id):
         df = pd.read_csv(fragment_metrics_csv)
     except FileNotFoundError:
         print(f"Error: Fragment metrics file not found at {fragment_metrics_csv}")
-        return
+        # If output_json is provided, write an error summary
+        if output_json:
+            error_summary = {"stage": "Convergence Analysis", "error": f"Fragment metrics file not found at {fragment_metrics_csv}"}
+            with open(output_json, 'w') as f:
+                json.dump(error_summary, f, indent=4)
+        sys.exit(1) # Exit with error code
     except Exception as e:
         print(f"Error loading fragment metrics CSV: {e}")
-        return
+        # If output_json is provided, write an error summary
+        if output_json:
+            error_summary = {"stage": "Convergence Analysis", "error": f"Error loading fragment metrics CSV: {e}"}
+            with open(output_json, 'w') as f:
+                json.dump(error_summary, f, indent=4)
+        sys.exit(1) # Exit with error code
 
     print(f"Debug: Columns in df after loading CSV: {df.columns}") # Added debug print
 
@@ -143,7 +161,17 @@ def analyze_convergence(fragment_metrics_csv, output_dir, run_id):
         ]
     }
 
-    # Print summary results as JSON to stdout
+    # Save summary results to JSON file if output_json is provided
+    if output_json:
+        try:
+            with open(output_json, 'w') as f:
+                json.dump(summary_results, f, indent=4)
+            print(f"Exported summary: {output_json}")
+        except Exception as e:
+            print(f"Error saving summary JSON to {output_json}: {e}")
+            # Continue without exiting, as the analysis itself was successful
+
+    # Print summary results as JSON to stdout (still keep for orchestrator)
     print(json.dumps(summary_results))
 
     print("Convergence analysis complete.")
@@ -153,8 +181,12 @@ if __name__ == "__main__":
     parser.add_argument("--csv", required=True, type=str, help="Path to the fragment metrics CSV file.")
     parser.add_argument("--outdir", required=True, type=str, help="Directory to save output plots.")
     parser.add_argument("--run-id", required=True, type=str, help="Run ID for plot filenames.") # Added run_id argument
+    parser.add_argument(
+        '--output-json', required=False, type=str, # Make output-json optional
+        help='Path to the output JSON file for the summary results.'
+    )
 
     args = parser.parse_args()
 
-    # Update function call to pass run_id and use correct argument names
-    analyze_convergence(args.csv, args.outdir, args.run_id)
+    # Update function call to pass run_id, output_json and use correct argument names
+    analyze_convergence(args.csv, args.outdir, args.run_id, args.output_json)

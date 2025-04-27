@@ -11,11 +11,11 @@ import subprocess
 import os
 import json
 
-def run_stage(script_path, args):
+def run_stage(script_path, args, cwd=None):
     """Runs a single analysis script as a subprocess."""
     command = ["python3", script_path] + args
     print(f"Running command: {' '.join(command)}")
-    result = subprocess.run(command, capture_output=True, text=True)
+    result = subprocess.run(command, capture_output=True, text=True, cwd=cwd)
     print(f"Stdout:\n{result.stdout}")
     print(f"Stderr:\n{result.stderr}")
     if result.returncode != 0:
@@ -199,19 +199,28 @@ def main():
 
     # Stage 1: Data Preparation
     print("\n--- Running Stage 1: Data Preparation ---")
+    # Get the directory of the PSF file
+    data_dir = os.path.dirname(args.psf)
+
+    # Get the absolute path of the script
+    script_abs_path = os.path.abspath("src/nec_pt_fragment_metrics.py")
+
+    # Define arguments for Stage 1, using filenames for input and absolute paths for output
     stage1_args = [
-        "--psf", args.psf,
-        "--dcd", args.dcd,
+        "--psf", os.path.basename(args.psf),
+        "--dcd", os.path.basename(args.dcd),
         "--run-id", args.run_id,
         "--sample-interval", str(args.sample_interval),
         "--default-cutoff", str(args.default_cutoff),
         "--pt-cutoff", str(args.pt_cutoff),
-        "--output-csv", metrics_csv_path,
-        "--output-json", pt_json_path,
-        "--output-summary", os.path.join(args.output_dir, f"{args.run_id}_stage1_summary.md") # Stage 1 can still generate its own summary
+        "--output-csv", os.path.abspath(metrics_csv_path), # Provide absolute path for output
+        "--output-json", os.path.abspath(pt_json_path), # Provide absolute path for output
+        "--output-summary", os.path.abspath(os.path.join(args.output_dir, f"{args.run_id}_stage1_summary.md")) # Provide absolute path for output
     ]
+
     # Stage 1 doesn't output JSON summary to stdout, its main output is CSV and JSON files
-    run_stage("src/nec_pt_fragment_metrics.py", stage1_args)
+    # Run Stage 1 in the directory of the data files
+    run_stage(script_abs_path, stage1_args, cwd=data_dir)
 
     # Stage 2: Residence Time Analysis
     print("\n--- Running Stage 2: Residence Time Analysis ---")

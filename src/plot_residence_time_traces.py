@@ -308,11 +308,11 @@ def main():
 
     selected_fragments = {}
     if most_moved_frag_id is not None:
-        selected_fragments[most_moved_frag_id] = 'most_moved'
+        selected_fragments[str(most_moved_frag_id)] = 'most_moved'
     if most_events_frag_id is not None and most_events_frag_id not in selected_fragments:
-         selected_fragments[most_events_frag_id] = 'most_events'
+         selected_fragments[str(most_events_frag_id)] = 'most_events'
     if most_unique_regions_frag_id is not None and most_unique_regions_frag_id not in selected_fragments:
-         selected_fragments[most_unique_regions_frag_id] = 'most_unique_regions'
+         selected_fragments[str(most_unique_regions_frag_id)] = 'most_unique_regions'
 
     # Check min_dist values for selected fragments
     print("\n--- MinDist for Selected Fragments ---")
@@ -355,7 +355,7 @@ def main():
     # Prepare results for the comprehensive summary
     summary_results = {
         "stage": "Advanced Visualization (Residence Time Traces)",
-        "fragment_metrics_summary": metrics_df.to_dict(orient='index'), # Include the fragment metrics summary
+        "fragment_metrics_summary": metrics_df.rename(index=str).to_dict(orient='index'), # Include the fragment metrics summary
         "selected_fragments_for_plotting": selected_fragments,
         "generated_plots": []
     }

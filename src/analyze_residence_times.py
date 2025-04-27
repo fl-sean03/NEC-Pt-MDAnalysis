@@ -166,6 +166,10 @@ def main():
         '--side-by-side', action='store_true',
         help='Plot four histograms side by side in one figure'
     )
+    parser.add_argument(
+        '--output-json', required=False, # Make output-json optional
+        help='Path to the output JSON file for the summary results.'
+    )
     args = parser.parse_args()
 
     # load data
@@ -173,10 +177,21 @@ def main():
         df = pd.read_csv(args.csv)
     except FileNotFoundError:
         print(f"Error: Input CSV file not found at {args.csv}")
-        return
+        # If output-json is provided, write an error summary
+        if args.output_json:
+            error_summary = {"stage": "Residence Time Analysis", "error": f"Input CSV file not found at {args.csv}"}
+            with open(args.output_json, 'w') as f:
+                json.dump(error_summary, f, indent=4)
+        sys.exit(1) # Exit with error code
     except Exception as e:
         print(f"Error loading CSV file: {e}")
-        return
+        # If output-json is provided, write an error summary
+        if args.output_json:
+            error_summary = {"stage": "Residence Time Analysis", "error": f"Error loading CSV file: {e}"}
+            with open(args.output_json, 'w') as f:
+                json.dump(error_summary, f, indent=4)
+        sys.exit(1) # Exit with error code
+
 
     # infer run_id
     run_id = df['run_id'].iloc[0] if 'run_id' in df.columns else os.path.splitext(os.path.basename(args.csv))[0]
@@ -188,16 +203,33 @@ def main():
         print(f'Determined sampling interval: {dt_ps:.3f} ps ({dt:.6f} ns)')
     except ValueError as e:
         print(f"Error determining sampling interval: {e}")
-        return
+        # If output-json is provided, write an error summary
+        if args.output_json:
+            error_summary = {"stage": "Residence Time Analysis", "error": f"Error determining sampling interval: {e}"}
+            with open(args.output_json, 'w') as f:
+                json.dump(error_summary, f, indent=4)
+        sys.exit(1) # Exit with error code
     except Exception as e:
         print(f"An unexpected error occurred while determining sampling interval: {e}")
-        return
+        # If output-json is provided, write an error summary
+        if args.output_json:
+            error_summary = {"stage": "Residence Time Analysis", "error": f"An unexpected error occurred while determining sampling interval: {e}"}
+            with open(args.output_json, 'w') as f:
+                json.dump(error_summary, f, indent=4)
+        sys.exit(1) # Exit with error code
+
 
     # Get unique non-NaN regions
     regions = sorted(df['nearest_pt_class'].dropna().unique())
     if not regions:
         print("No valid Pt regions found in the data.")
-        return
+        # If output-json is provided, write a summary indicating no regions found
+        if args.output_json:
+            no_regions_summary = {"stage": "Residence Time Analysis", "message": "No valid Pt regions found in the data."}
+            with open(args.output_json, 'w') as f:
+                json.dump(no_regions_summary, f, indent=4)
+        sys.exit(0) # Exit successfully as no analysis is possible
+
 
     # Compute residence durations (in ns) using the utility function
     all_durations = {reg: [] for reg in regions}
@@ -210,7 +242,13 @@ def main():
                 all_durations[region].extend(durations_list)
     except Exception as e:
         print(f"Error computing residence times: {e}")
-        return
+        # If output-json is provided, write an error summary
+        if args.output_json:
+            error_summary = {"stage": "Residence Time Analysis", "error": f"Error computing residence times: {e}"}
+            with open(args.output_json, 'w') as f:
+                json.dump(error_summary, f, indent=4)
+        sys.exit(1) # Exit with error code
+
 
     # Construct the output directory based on run_id
     # Assuming output structure like outputs/<run_id>/residence_time_histograms
@@ -226,23 +264,37 @@ def main():
     plot_output_dir = os.path.join(run_output_dir, args.outdir)
 
     # plot and save histograms
+    generated_plots = []
     try:
         if args.side_by_side:
             plot_side_by_side(all_durations, plot_output_dir, run_id, max_bin=args.max_bin, bins=args.bins)
+            fname = f"{run_id}_residence_time_side_by_side.png"
+            generated_plots.append(os.path.join(plot_output_dir, fname))
         elif args.overlay:
             plot_overlay(all_durations, plot_output_dir, run_id, max_bin=args.max_bin, bins=args.bins)
+            fname = f"{run_id}_residence_time_overlay.png"
+            generated_plots.append(os.path.join(plot_output_dir, fname))
         else:
             plot_histograms(all_durations, plot_output_dir, run_id, max_bin=args.max_bin, bins=args.bins)
+            for region in regions:
+                fname = f"{run_id}_{region}_residence_time_hist.png"
+                generated_plots.append(os.path.join(plot_output_dir, fname))
     except Exception as e:
         print(f"Error generating plots: {e}")
-        return
+        # If output-json is provided, write an error summary
+        if args.output_json:
+            error_summary = {"stage": "Residence Time Analysis", "error": f"Error generating plots: {e}"}
+            with open(args.output_json, 'w') as f:
+                json.dump(error_summary, f, indent=4)
+        sys.exit(1) # Exit with error code
+
 
     # Prepare results for the comprehensive summary
     summary_results = {
         "stage": "Residence Time Analysis",
         "regions_analyzed": regions,
         "residence_event_summary": {},
-        "generated_plots": []
+        "generated_plots": generated_plots # Use the collected plot paths
     }
 
     for region, durations_list in all_durations.items():
@@ -253,20 +305,17 @@ def main():
             "total_residence_time_ns": float(np.sum(durations_list)) if durations_list else 0.0
         }
 
-    # Collect generated plot paths
-    # Assuming plots are saved with run_id and region/type in filename
-    if args.side_by_side:
-         fname = f"{run_id}_residence_time_side_by_side.png"
-         summary_results["generated_plots"].append(os.path.join(plot_output_dir, fname))
-    elif args.overlay:
-         fname = f"{run_id}_residence_time_overlay.png"
-         summary_results["generated_plots"].append(os.path.join(plot_output_dir, fname))
-    else:
-        for region in regions:
-            fname = f"{run_id}_{region}_residence_time_hist.png"
-            summary_results["generated_plots"].append(os.path.join(plot_output_dir, fname))
+    # Save summary results to JSON file if output-json is provided
+    if args.output_json:
+        try:
+            with open(args.output_json, 'w') as f:
+                json.dump(summary_results, f, indent=4)
+            print(f"Exported summary: {args.output_json}")
+        except Exception as e:
+            print(f"Error saving summary JSON to {args.output_json}: {e}")
+            # Continue without exiting, as the analysis itself was successful
 
-    # Print summary results as JSON to stdout
+    # Print summary results as JSON to stdout (still keep for orchestrator)
     print(json.dumps(summary_results))
 
     print("Residence time analysis complete.")

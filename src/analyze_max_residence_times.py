@@ -1,3 +1,4 @@
+import json
 #!/usr/bin/env python3
 """
 Regenerated script to plot the maximum contiguous residence time per fragment for each Pt region.
@@ -110,6 +111,10 @@ def main():
     parser.add_argument('--cutoff', type=float, default=2.5, help='Distance cutoff (Å)')
     parser.add_argument('--bins', type=int, default=50, help='Number of histogram bins')
     parser.add_argument('--max-bin', type=float, default=None, help='Max x-axis (ns)')
+    parser.add_argument(
+        '--output-json', required=False, # Make output-json optional
+        help='Path to the output JSON file for the summary results.'
+    )
     args = parser.parse_args()
 
     # load data
@@ -117,10 +122,21 @@ def main():
         df = pd.read_csv(args.csv)
     except FileNotFoundError:
         print(f"Error: Input CSV file not found at {args.csv}")
-        return
+        # If output-json is provided, write an error summary
+        if args.output_json:
+            error_summary = {"stage": "Maximum Residence Time Analysis", "error": f"Input CSV file not found at {args.csv}"}
+            with open(args.output_json, 'w') as f:
+                json.dump(error_summary, f, indent=4)
+        sys.exit(1) # Exit with error code
     except Exception as e:
         print(f"Error loading CSV file: {e}")
-        return
+        # If output-json is provided, write an error summary
+        if args.output_json:
+            error_summary = {"stage": "Maximum Residence Time Analysis", "error": f"Error loading CSV file: {e}"}
+            with open(args.output_json, 'w') as f:
+                json.dump(error_summary, f, indent=4)
+        sys.exit(1) # Exit with error code
+
 
     # infer run_id
     run_id = df['run_id'].iloc[0] if 'run_id' in df.columns else os.path.splitext(os.path.basename(args.csv))[0]
@@ -131,17 +147,34 @@ def main():
         print(f'Sampling interval: {dt_ns:.3f} ns')
     except ValueError as e:
         print(f"Error determining sampling interval: {e}")
-        return
+        # If output-json is provided, write an error summary
+        if args.output_json:
+            error_summary = {"stage": "Maximum Residence Time Analysis", "error": f"Error determining sampling interval: {e}"}
+            with open(args.output_json, 'w') as f:
+                json.dump(error_summary, f, indent=4)
+        sys.exit(1) # Exit with error code
     except Exception as e:
         print(f"An unexpected error occurred while determining sampling interval: {e}")
-        return
+        # If output-json is provided, write an error summary
+        if args.output_json:
+            error_summary = {"stage": "Maximum Residence Time Analysis", "error": f"An unexpected error occurred while determining sampling interval: {e}"}
+            with open(args.output_json, 'w') as f:
+                json.dump(error_summary, f, indent=4)
+        sys.exit(1) # Exit with error code
+
 
     # compute max residence durations (in ns)
     try:
         durations = compute_max_residence_times(df, dt_ns, args.cutoff)
     except Exception as e:
         print(f"Error computing maximum residence times: {e}")
-        return
+        # If output-json is provided, write an error summary
+        if args.output_json:
+            error_summary = {"stage": "Maximum Residence Time Analysis", "error": f"Error computing maximum residence times: {e}"}
+            with open(args.output_json, 'w') as f:
+                json.dump(error_summary, f, indent=4)
+        sys.exit(1) # Exit with error code
+
 
     # Construct the output directory based on run_id
     # Assuming output structure like outputs/<run_id>/max_residence_plots
@@ -156,18 +189,27 @@ def main():
     plot_output_dir = os.path.join(run_output_dir, args.outdir)
 
     # plot and save histograms
+    generated_plots = []
     try:
         plot_side_by_side(durations, plot_output_dir, run_id, max_bin=args.max_bin, bins=args.bins)
+        fname = f"{run_id}_max_residence_time_side_by_side.png"
+        generated_plots.append(os.path.join(plot_output_dir, fname))
     except Exception as e:
         print(f"Error generating plots: {e}")
-        return
+        # If output-json is provided, write an error summary
+        if args.output_json:
+            error_summary = {"stage": "Maximum Residence Time Analysis", "error": f"Error generating plots: {e}"}
+            with open(args.output_json, 'w') as f:
+                json.dump(error_summary, f, indent=4)
+        sys.exit(1) # Exit with error code
+
 
     # Prepare results for the comprehensive summary
     summary_results = {
         "stage": "Maximum Residence Time Analysis",
         "regions_analyzed": sorted(durations.keys()),
         "max_residence_time_summary": {},
-        "generated_plots": []
+        "generated_plots": generated_plots # Use the collected plot paths
     }
 
     for region, durations_list in durations.items():
@@ -177,12 +219,17 @@ def main():
             "median_max_duration_ns": float(np.median(durations_list)) if durations_list else 0.0,
         }
 
-    # Collect generated plot path
-    # Assuming plot is saved with run_id in filename
-    fname = f"{run_id}_max_residence_time_side_by_side.png"
-    summary_results["generated_plots"].append(os.path.join(plot_output_dir, fname))
+    # Save summary results to JSON file if output-json is provided
+    if args.output_json:
+        try:
+            with open(args.output_json, 'w') as f:
+                json.dump(summary_results, f, indent=4)
+            print(f"Exported summary: {args.output_json}")
+        except Exception as e:
+            print(f"Error saving summary JSON to {args.output_json}: {e}")
+            # Continue without exiting, as the analysis itself was successful
 
-    # Print summary results as JSON to stdout
+    # Print summary results as JSON to stdout (still keep for orchestrator)
     print(json.dumps(summary_results))
 
     print("Maximum residence time analysis complete.")

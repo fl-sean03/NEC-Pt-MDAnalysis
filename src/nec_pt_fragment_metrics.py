@@ -89,7 +89,6 @@ def fragment_metrics(frag, pts_by_region, pts_surface, default_cutoff, box_dims,
             atom_mind = np.full(n_atoms, np.inf)
         atom_dists[reg] = atom_mind
         # data[f'atom_mindists_{reg}'] = json.dumps(atom_mind.tolist()) # Commented out as per-atom dists are not used for main metrics
-_
     # global min_dist (minimum distance between any fragment atom and any surface Pt atom)
     # Ensure pts_surface is not empty before calculating distances
     if len(pts_surface) > 0:
