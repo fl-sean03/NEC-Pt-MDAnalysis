@@ -5,7 +5,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import os
 
-def analyze_convergence(fragment_metrics_csv, output_dir):
+def analyze_convergence(fragment_metrics_csv, output_dir, run_id):
     """
     Analyzes convergence metrics from fragment metrics data.
 
@@ -44,9 +44,9 @@ def analyze_convergence(fragment_metrics_csv, output_dir):
     plt.plot(sorted(frames), unique_facets)
     plt.xlabel("Frame")
     plt.ylabel("Number of Unique Pt Regions Covered") # Updated label
-    plt.title("Unique Pt Region Coverage Over Time") # Updated title
+    plt.title(f"{run_id} Unique Pt Region Coverage Over Time") # Updated title
     plt.grid(True)
-    plt.savefig(os.path.join(output_dir, "unique_pt_region_coverage.png")) # Updated filename
+    plt.savefig(os.path.join(output_dir, f"{run_id}_unique_pt_region_coverage.png")) # Updated filename
     plt.close()
     print("Unique Pt Region coverage plot saved.") # Updated print message
 
@@ -58,9 +58,9 @@ def analyze_convergence(fragment_metrics_csv, output_dir):
     plt.plot(average_rg.index, average_rg.values)
     plt.xlabel("Frame")
     plt.ylabel("Average Radius of Gyration (Å)") # Updated label
-    plt.title("Average Radius of Gyration Over Time") # Updated title
+    plt.title(f"{run_id} Average Radius of Gyration Over Time") # Updated title
     plt.grid(True)
-    plt.savefig(os.path.join(output_dir, "average_radius_gyration_over_time.png")) # Updated filename
+    plt.savefig(os.path.join(output_dir, f"{run_id}_average_radius_gyration_over_time.png")) # Updated filename
     plt.close()
     print("Average Radius of Gyration over time plot saved.") # Updated print message
 
@@ -85,9 +85,9 @@ def analyze_convergence(fragment_metrics_csv, output_dir):
         plt.plot(average_msd.index, average_msd.values)
         plt.xlabel("Frame")
         plt.ylabel("Mean Squared Displacement (MSD)")
-        plt.title("Average MSD Over Time")
+        plt.title(f"{run_id} Average MSD Over Time")
         plt.grid(True)
-        plt.savefig(os.path.join(output_dir, "average_msd_over_time.png"))
+        plt.savefig(os.path.join(output_dir, f"{run_id}_average_msd_over_time.png"))
         plt.close()
         print("Average MSD over time plot saved.")
     else:
@@ -120,9 +120,9 @@ def analyze_convergence(fragment_metrics_csv, output_dir):
     plt.plot(sorted(frames), event_counts)
     plt.xlabel("Frame")
     plt.ylabel("Cumulative Binding Event Count")
-    plt.title("Binding Event Count Growth Over Time")
+    plt.title(f"{run_id} Binding Event Count Growth Over Time")
     plt.grid(True)
-    plt.savefig(os.path.join(output_dir, "event_count_growth.png"))
+    plt.savefig(os.path.join(output_dir, f"{run_id}_event_count_growth.png"))
     plt.close()
     print("Event count growth plot saved.")
 
@@ -157,4 +157,4 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     # Update function call to pass run_id and use correct argument names
-    analyze_convergence(args.csv, args.outdir)
+    analyze_convergence(args.csv, args.outdir, args.run_id)

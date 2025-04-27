@@ -210,40 +210,6 @@ def main():
         "--output-json", pt_json_path,
         "--output-summary", os.path.join(args.output_dir, f"{args.run_id}_stage1_summary.md") # Stage 1 can still generate its own summary
     ]
-    # Dictionary to store results from each stage
-    all_analysis_results = {}
-    all_plot_paths = []
-
-    # Stage 1: Data Preparation
-    print("\n--- Running Stage 1: Data Preparation ---")
-    stage1_args = [
-        "--psf", "./data/0H/0HPt.psf", # Corrected PSF path
-        "--dcd", "./data/0H/out_eq.dcd", # Corrected DCD path
-        "--run-id", args.run_id,
-        "--sample-interval", str(args.sample_interval),
-        "--default-cutoff", str(args.default_cutoff),
-        "--pt-cutoff", str(args.pt_cutoff),
-        "--output-csv", metrics_csv_path,
-        "--output-json", pt_json_path,
-        "--output-summary", os.path.join(args.output_dir, f"{args.run_id}_stage1_summary.md") # Stage 1 can still generate its own summary
-    ]
-    # Dictionary to store results from each stage
-    all_analysis_results = {}
-    all_plot_paths = []
-
-    # Stage 1: Data Preparation
-    print("\n--- Running Stage 1: Data Preparation ---")
-    stage1_args = [
-        "--psf", "./data/0H/0HPt.psf", # Corrected PSF path
-        "--dcd", "./data/0H/out_eq.dcd", # Corrected DCD path
-        "--run-id", args.run_id,
-        "--sample-interval", str(args.sample_interval),
-        "--default-cutoff", str(args.default_cutoff),
-        "--pt-cutoff", str(args.pt_cutoff),
-        "--output-csv", metrics_csv_path,
-        "--output-json", pt_json_path,
-        "--output-summary", os.path.join(args.output_dir, f"{args.run_id}_stage1_summary.md") # Stage 1 can still generate its own summary
-    ]
     # Stage 1 doesn't output JSON summary to stdout, its main output is CSV and JSON files
     run_stage("src/nec_pt_fragment_metrics.py", stage1_args)
 
@@ -340,8 +306,8 @@ def main():
     stage5_outdir = os.path.join(args.output_dir, "visualization_plots")
     stage5_args = [
         "--csv", metrics_csv_path,
-        "--psf", "./data/0H/0HPt.psf", # Corrected PSF path
-        "--dcd", "./data/0H/out_eq.dcd", # Corrected DCD path
+        "--psf", args.psf,
+        "--dcd", args.dcd,
         "--pt-json", pt_json_path,
         "--outdir", stage5_outdir,
         "--min-residence-duration-ns", "0.1", # From PLANNING.md

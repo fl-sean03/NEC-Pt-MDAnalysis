@@ -138,7 +138,6 @@ _
     data['asphericity'] = float(eig_sorted[0] - 0.5*(eig_sorted[1] + eig_sorted[2]))
     # patch_area and pt_density calculations removed as they are not needed for the current fix
     # and depend on the old per-atom distance logic.
-
     # nearest_pt_idx and class (already calculated based on COM distance above)
     # The nearest_pt_idx and nearest_pt_class are already determined in the COM-based min_dist calculation block.
     # No need to re-calculate here.
