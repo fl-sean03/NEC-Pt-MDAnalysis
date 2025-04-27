@@ -2,8 +2,6 @@
 """
 Regenerated script to compute residence time histograms for fragment contacts per Pt region.
 """
-:start_line:5
--------
 import argparse
 import os
 import numpy as np

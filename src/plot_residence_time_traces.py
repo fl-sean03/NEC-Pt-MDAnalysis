@@ -2,10 +2,6 @@
 """
 Regenerated script to generate 3D trajectory traces for selected molecules, colored by Pt region.
 """
-:start_line:5
--------
-:start_line:7
--------
 import argparse
 import os
 import numpy as np

@@ -49,11 +49,11 @@ def classify_pt_atoms(u, pt_cutoff):
     return pt_class, pts_by_region
 
 # ----- Main verification logic -----
-psf_path = 'data/0H/0HPt.psf'
-dcd_path = 'data/0H/out_eq.dcd'
-csv_path = 'outputs/atom_atom_metrics_run_50frames/atom_atom_fragment_metrics_50frames.csv'
-json_path = 'outputs/atom_atom_metrics_run_50frames/atom_atom_pt_classification_50frames.json'
-fragment_id_to_check = 20 # Fragment ID for "most unique regions"
+psf_path = '/home/sf2/LabWork/Workspace/12-MDAnalysis-2/3-pipeline/data/0H/0HPt.psf'
+dcd_path = '/home/sf2/LabWork/Workspace/12-MDAnalysis-2/3-pipeline/data/0H/out_eq.dcd'
+csv_path = 'outputs/run_20250426_222921/fragment_metrics.csv'
+json_path = 'outputs/run_20250426_222921/pt_classification.json'
+fragment_id_to_check = 214
 sample_interval = 50 # Updated to match the CSV generation sample interval
 distance_tolerance = 0.05 # Increased tolerance for comparing distances
 pt_classification_cutoff = 3.0 # Cutoff used in nec_pt_fragment_metrics.py

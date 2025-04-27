@@ -1,9 +1,7 @@
-calculate_residence_events#!/usr/bin/env python3
+#!/usr/bin/env python3
 """
 Regenerated script to compute and plot dissociation constants per molecule and per Pt region.
 """
-:start_line:5
--------
 import argparse
 import os
 import numpy as np
