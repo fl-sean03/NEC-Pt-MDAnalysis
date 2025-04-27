@@ -20,22 +20,23 @@
 
 ## 3. Architecture Overview: Data Analysis Pipeline
 
+- **Pipeline Orchestrator (`run_analysis_pipeline.py`):** A master script that orchestrates the execution of the individual pipeline stages, manages data flow between stages, and generates the final comprehensive summary report.
 - **Pipeline Stages (Core Components):**
     - **Stage 1: Data Preparation (`nec_pt_fragment_metrics.py`):** Reads raw simulation data (PSF, DCD) and generates the base fragment metrics CSV and Pt classification JSON.
-    - **Stage 2: Residence Time Analysis (`analyze_residence_times.py`, `analyze_max_residence_times.py`):** Reads the fragment metrics CSV and calculates/plots residence time distributions.
+    - **Stage 2: Residence Time Analysis (`analyze_residence_times.py`, `analyze_max_residence_times.py`):** Reads the fragment metrics CSV and calculates/plots residence time distributions and maximum residence times.
     - **Stage 3: Binding Metrics Analysis (`analyze_binding_ratios.py`):** Reads the fragment metrics CSV and calculates/plots K_D, ΔG_D, mean τ, and std τ.
     - **Stage 4: Convergence Analysis (`analyze_convergence.py`):** Reads the fragment metrics CSV and performs/plots convergence checks.
     - **Stage 5: Advanced Visualization (`plot_residence_time_traces.py`):** Reads the fragment metrics CSV and generates advanced visualizations like spaghetti plots.
 - **Modularity and Robustness:**
-    - Each script acts as a distinct module with defined inputs (e.g., CSV files) and outputs (e.g., other CSVs, plots).
+    - Each script acts as a distinct module with defined inputs (e.g., CSV files) and outputs (e.g., other CSVs, plots, JSON summaries via stdout).
     - Clear interfaces (command-line arguments) for passing data and parameters between stages.
     - Implementation will include error handling within each script to ensure robustness.
     - The modular design allows for easy addition or modification of pipeline stages.
 - **Deliverable Documents:**
     - PLANNING.md (this document)
     - TASK.md (detailed task breakdown)
-    - Regenerated analysis scripts (as listed in Pipeline Stages).
-    - Generated output files (CSV, JSON, plots, summary markdown).
+    - Regenerated analysis scripts (as listed in Pipeline Stages and Orchestrator).
+    - Generated output files (CSV, JSON, plots, comprehensive summary markdown).
 - **Technology Stack:** Python, MDAnalysis, NumPy, Pandas, Matplotlib, SciPy, scikit-learn (for DBSCAN if needed).
 - **Constraints & Considerations:**
     - New code must be generated originally, referencing sample scripts for ideas/reference only.

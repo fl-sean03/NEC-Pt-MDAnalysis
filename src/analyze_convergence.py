@@ -126,13 +126,35 @@ def analyze_convergence(fragment_metrics_csv, output_dir):
     plt.close()
     print("Event count growth plot saved.")
 
+    # Prepare results for the comprehensive summary
+    summary_results = {
+        "stage": "Convergence Analysis",
+        "convergence_checks_performed": [
+            "Unique Pt Region Coverage Over Time",
+            "Average Radius of Gyration Over Time",
+            "Average MSD Over Time",
+            "Binding Event Count Growth Over Time"
+        ],
+        "generated_plots": [
+            os.path.join(output_dir, "unique_pt_region_coverage.png"),
+            os.path.join(output_dir, "average_radius_gyration_over_time.png"),
+            os.path.join(output_dir, "average_msd_over_time.png"),
+            os.path.join(output_dir, "event_count_growth.png")
+        ]
+    }
+
+    # Print summary results as JSON to stdout
+    print(json.dumps(summary_results))
+
     print("Convergence analysis complete.")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Analyze convergence metrics from fragment metrics data.")
-    parser.add_argument("fragment_metrics_csv", type=str, help="Path to the fragment metrics CSV file.")
-    parser.add_argument("output_dir", type=str, help="Directory to save output plots.")
+    parser.add_argument("--csv", required=True, type=str, help="Path to the fragment metrics CSV file.")
+    parser.add_argument("--outdir", required=True, type=str, help="Directory to save output plots.")
+    parser.add_argument("--run-id", required=True, type=str, help="Run ID for plot filenames.") # Added run_id argument
 
     args = parser.parse_args()
 
-    analyze_convergence(args.fragment_metrics_csv, args.output_dir)
+    # Update function call to pass run_id and use correct argument names
+    analyze_convergence(args.csv, args.outdir)

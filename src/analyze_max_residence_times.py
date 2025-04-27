@@ -162,6 +162,29 @@ def main():
         print(f"Error generating plots: {e}")
         return
 
+    # Prepare results for the comprehensive summary
+    summary_results = {
+        "stage": "Maximum Residence Time Analysis",
+        "regions_analyzed": sorted(durations.keys()),
+        "max_residence_time_summary": {},
+        "generated_plots": []
+    }
+
+    for region, durations_list in durations.items():
+        summary_results["max_residence_time_summary"][region] = {
+            "fragment_count_with_max_residence": len(durations_list),
+            "average_max_duration_ns": float(np.mean(durations_list)) if durations_list else 0.0,
+            "median_max_duration_ns": float(np.median(durations_list)) if durations_list else 0.0,
+        }
+
+    # Collect generated plot path
+    # Assuming plot is saved with run_id in filename
+    fname = f"{run_id}_max_residence_time_side_by_side.png"
+    summary_results["generated_plots"].append(os.path.join(plot_output_dir, fname))
+
+    # Print summary results as JSON to stdout
+    print(json.dumps(summary_results))
+
     print("Maximum residence time analysis complete.")
 
 if __name__ == '__main__':

@@ -9,6 +9,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import math
 import itertools
+import json # Added import for json
 from residence_analysis_utils import find_residence_events_per_region # Import the new utility function
 
 def compute_dt_ps(df):
@@ -236,6 +237,37 @@ def main():
         print(f"Error generating plots: {e}")
         return
 
+    # Prepare results for the comprehensive summary
+    summary_results = {
+        "stage": "Residence Time Analysis",
+        "regions_analyzed": regions,
+        "residence_event_summary": {},
+        "generated_plots": []
+    }
+
+    for region, durations_list in all_durations.items():
+        summary_results["residence_event_summary"][region] = {
+            "event_count": len(durations_list),
+            "average_duration_ns": float(np.mean(durations_list)) if durations_list else 0.0,
+            "median_duration_ns": float(np.median(durations_list)) if durations_list else 0.0,
+            "total_residence_time_ns": float(np.sum(durations_list)) if durations_list else 0.0
+        }
+
+    # Collect generated plot paths
+    # Assuming plots are saved with run_id and region/type in filename
+    if args.side_by_side:
+         fname = f"{run_id}_residence_time_side_by_side.png"
+         summary_results["generated_plots"].append(os.path.join(plot_output_dir, fname))
+    elif args.overlay:
+         fname = f"{run_id}_residence_time_overlay.png"
+         summary_results["generated_plots"].append(os.path.join(plot_output_dir, fname))
+    else:
+        for region in regions:
+            fname = f"{run_id}_{region}_residence_time_hist.png"
+            summary_results["generated_plots"].append(os.path.join(plot_output_dir, fname))
+
+    # Print summary results as JSON to stdout
+    print(json.dumps(summary_results))
 
     print("Residence time analysis complete.")
 

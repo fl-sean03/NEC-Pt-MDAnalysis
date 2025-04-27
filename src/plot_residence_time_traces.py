@@ -352,6 +352,23 @@ def main():
         plot_single_trace(df_single_fragment, df_pt_atoms, output_path, title, region_color_map, regions, args.distance_cutoff, u.dimensions)
 
 
+    # Prepare results for the comprehensive summary
+    summary_results = {
+        "stage": "Advanced Visualization (Residence Time Traces)",
+        "fragment_metrics_summary": metrics_df.to_dict(orient='index'), # Include the fragment metrics summary
+        "selected_fragments_for_plotting": selected_fragments,
+        "generated_plots": []
+    }
+
+    # Collect generated plot paths
+    for frag_id, selection_type in selected_fragments.items():
+        output_fname = f"{run_id}_fragment_{frag_id}_{selection_type}_trace_with_pt.png"
+        output_path = os.path.join(plot_output_dir, output_fname)
+        summary_results["generated_plots"].append(output_path)
+
+    # Print summary results as JSON to stdout
+    print(json.dumps(summary_results))
+
     print("Residence time traces plotting complete for selected fragments with Pt atoms.")
 
 if __name__ == '__main__':

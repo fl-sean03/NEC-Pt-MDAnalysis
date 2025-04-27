@@ -84,9 +84,9 @@ This document outlines the detailed tasks for regenerating the MDAnalysis data a
 
 ### Phase 7: Integration, Documentation & Testing
 
-- [ ] Create a master script or workflow manager to orchestrate the execution of the pipeline stages in the correct order, passing outputs as inputs.
+- [x] Create a master script or workflow manager (`src/run_analysis_pipeline.py`) to orchestrate the execution of the pipeline stages in the correct order, passing outputs as inputs.
 - [ ] Ensure all scripts are runnable independently and as part of the pipeline.
-- [ ] Update summary markdown generation to be comprehensive, including key metrics, thresholds, and references to generated plots from all pipeline stages.
+- [x] Update summary markdown generation to be comprehensive, including key metrics, thresholds, and references to generated plots from all pipeline stages. This is now handled by the orchestrator script (`src/run_analysis_pipeline.py`) which collects results and plot paths from individual analysis scripts.
 - [ ] Add comprehensive docstrings and comments to all functions and scripts.
 - [ ] Write a brief README.md explaining the pipeline architecture and how to run the analysis workflow.
 - [ ] Test the full analysis pipeline with the sample data in `data/0H/`.

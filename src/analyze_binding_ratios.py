@@ -288,6 +288,21 @@ def main():
     else:
         print("No average facet metrics to plot.")
 
+    # Prepare results for the comprehensive summary
+    summary_results = {
+        "stage": "Binding Metrics Analysis",
+        "average_facet_metrics": avg_facet_metrics,
+        "generated_plots": []
+    }
+
+    # Collect generated plot paths
+    if avg_facet_metrics:
+        summary_results["generated_plots"].append(os.path.join(plot_output_dir, f"{run_id}_avg_k_d_per_region.png"))
+        summary_results["generated_plots"].append(os.path.join(plot_output_dir, f"{run_id}_avg_delta_g_d_per_region.png"))
+        summary_results["generated_plots"].append(os.path.join(plot_output_dir, f"{run_id}_mean_tau_per_region.png"))
+
+    # Print summary results as JSON to stdout
+    print(json.dumps(summary_results))
 
     print("Binding metrics analysis complete.")
 
